@@ -1,0 +1,30 @@
+# Rust / Tauri build output
+/target/
+**/target/
+**/*.exe
+**/*.pdb
+**/*.dll
+**/*.lib
+
+# Node / Svelte
+**/node_modules/
+**/build/
+**/.svelte-kit/
+
+# Local caches and credentials
+**/.ilearn-cache/
+**/.test-cache/
+**/session.json
+**/auth-cache/
+**/cache/
+
+# Research/capture artifacts (keep locally)
+/capture/
+/tools/
+/项目研究报告.md
+/登录链落实测报告.md
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db

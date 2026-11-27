@@ -1,0 +1,5 @@
+/target
+/.ilearn-cache
+/dump.json
+/ilearn-cli.exe
+*.log
