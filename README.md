@@ -70,6 +70,16 @@ GUI 支持：
 - 视频/字幕签名地址复制
 - 缓冲状态提示，HDMI 改为手动对齐
 
+## 自动构建与发布
+
+每次合并到 `main` 后，GitHub Actions 会自动构建并发布：
+
+- Windows x86_64 / ARM64（NSIS 安装包）
+- macOS Universal（DMG + `.app.zip`）
+- Linux x86_64 / ARM64（AppImage）
+
+工作流：`.github/workflows/release.yml`
+
 ## 数据与安全
 
 - 会话 Cookie 默认保存在各程序自己的缓存目录。
@@ -79,4 +89,5 @@ GUI 支持：
 
 ## 许可
 
-MIT
+BSD-3-Clause
+

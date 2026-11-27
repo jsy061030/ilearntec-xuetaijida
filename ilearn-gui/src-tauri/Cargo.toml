@@ -3,6 +3,7 @@ name = "ilearn-gui"
 version = "0.1.0"
 description = "学在吉大桌面客户端"
 authors = ["ilearn"]
+license = "BSD-3-Clause"
 edition = "2021"
 
 [lib]
@@ -33,4 +34,5 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
 
