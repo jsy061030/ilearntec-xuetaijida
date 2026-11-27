@@ -75,7 +75,7 @@ GUI 支持：
 每次合并到 `main` 后，GitHub Actions 会自动构建并发布：
 
 - Windows x86_64 / ARM64（NSIS 安装包）
-- macOS Universal（DMG + `.app.zip`）
+- macOS Universal（DMG，内含 Universal `.app`）
 - Linux x86_64 / ARM64（AppImage）
 
 工作流：`.github/workflows/release.yml`

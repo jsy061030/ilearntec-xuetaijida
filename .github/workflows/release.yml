@@ -107,7 +107,16 @@ jobs:
         shell: bash
         run: npm ci
 
-      - name: Build Tauri app
+      - name: Build Tauri app (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ilearn-gui
+        shell: cmd
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npx tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      - name: Build Tauri app (macOS/Linux)
+        if: runner.os != 'Windows'
         working-directory: ilearn-gui
         shell: bash
         env:
@@ -127,13 +136,9 @@ jobs:
                  "artifacts/ilearn-gui-${{ matrix.name }}.exe"
               ;;
             macos-*)
+              # Tauri 打完 DMG 后会清理中间的 .app；DMG 内已经包含 Universal .app。
               cp "ilearn-gui/src-tauri/target/$TARGET/release/bundle/dmg/"*.dmg \
                  "artifacts/ilearn-gui-${{ matrix.name }}.dmg"
-              APP=$(find "ilearn-gui/src-tauri/target/$TARGET/release/bundle/macos" \
-                -maxdepth 1 -name "*.app" -print -quit)
-              test -n "$APP"
-              ditto -c -k --sequesterRsrc --keepParent "$APP" \
-                "artifacts/ilearn-gui-${{ matrix.name }}.app.zip"
               ;;
             linux-*)
               cp "ilearn-gui/src-tauri/target/$TARGET/release/bundle/appimage/"*.AppImage \
@@ -173,7 +178,7 @@ jobs:
 
             包含：
             - Windows x86_64 / ARM64 安装包（NSIS）
-            - macOS Universal 应用（DMG + APP ZIP）
+            - macOS Universal 应用（DMG，内含 Universal .app）
             - Linux x86_64 / ARM64 AppImage
           files: release-assets/*
           fail_on_unmatched_files: true
