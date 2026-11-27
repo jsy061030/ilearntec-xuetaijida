@@ -77,6 +77,23 @@ jobs:
         with:
           arch: ${{ matrix.msvc_arch }}
 
+      - name: Configure MSVC linker
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw "Visual Studio with C++ tools not found" }
+          $msvc = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          $x64 = Join-Path $msvc.FullName "bin\Hostx64\x64\link.exe"
+          $arm64 = Join-Path $msvc.FullName "bin\Hostx64\arm64\link.exe"
+          if (-not (Test-Path $x64)) { throw "link.exe not found: $x64" }
+          if (-not (Test-Path $arm64)) { $arm64 = $x64 }
+          "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=$x64" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CARGO_TARGET_AARCH64_PC_WINDOWS_MSVC_LINKER=$arm64" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "x64 link: $x64"
+          Write-Host "arm64 link: $arm64"
+
       - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
