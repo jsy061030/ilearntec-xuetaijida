@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import {
     api,
     errorText,
@@ -8,12 +9,16 @@
     type PasswordStart,
     type RecordItem,
     type Term,
+    type UpdateInfo,
     type User,
     type VideoResource,
   } from "$lib/api";
 
   let booting = $state(true);
   let proxyBase = $state("");
+  let appVersion = $state("");
+  let updateInfo = $state<UpdateInfo | null>(null);
+  let updateChecking = $state(false);
   let user = $state<User | null>(null);
   let page = $state<"login" | "browse">("login");
   let error = $state("");
@@ -100,6 +105,12 @@
         proxyBase = "";
       }
       try {
+        appVersion = await api.appVersion();
+      } catch {
+        appVersion = "";
+      }
+      void checkUpdate(false);
+      try {
         const cached = await api.loadSession();
         if (cached) {
           await enterBrowse(cached);
@@ -129,6 +140,39 @@
     window.setTimeout(() => {
       if (notice === text) notice = "";
     }, 1800);
+  }
+
+  async function checkUpdate(manual = false) {
+    if (updateChecking) return;
+    updateChecking = true;
+    try {
+      const info = await api.checkUpdate();
+      updateInfo = info;
+      appVersion = info.currentVersion;
+      if (manual) {
+        flash(
+          info.hasUpdate
+            ? `发现新版本 v${info.latestVersion}`
+            : "当前已经是最新版本",
+        );
+      }
+    } catch (e) {
+      if (manual) error = errorText(e);
+    } finally {
+      updateChecking = false;
+    }
+  }
+
+  async function handleUpdateClick() {
+    if (updateInfo?.hasUpdate && updateInfo.url) {
+      try {
+        await openUrl(updateInfo.url);
+      } catch (e) {
+        error = `打开更新页面失败：${errorText(e)}`;
+      }
+      return;
+    }
+    await checkUpdate(true);
   }
 
   function initial(name?: string | null): string {
@@ -807,6 +851,23 @@
 
       <div class="appbar-spacer"></div>
 
+      <button
+        class="version-chip"
+        class:has-update={updateInfo?.hasUpdate}
+        title={updateInfo?.hasUpdate
+          ? `打开 GitHub Release v${updateInfo.latestVersion}`
+          : "检查 GitHub 更新"}
+        onclick={handleUpdateClick}
+      >
+        {#if updateChecking}
+          检查更新中...
+        {:else if updateInfo?.hasUpdate}
+          <span class="update-dot"></span>更新 v{updateInfo.latestVersion}
+        {:else}
+          v{appVersion || "0.1.0"}
+        {/if}
+      </button>
+
       <div class="connection">
         <i></i>
         <span>已连接</span>
@@ -984,7 +1045,6 @@
                 <div class="video-head">
                   <span>{teacher.videoName ?? "教师机位"}</span>
                   <small>{humanSize(teacher.videoSize)}</small>
-                  <button class="text-btn light" onclick={() => copy(teacher.videoPath)}>复制地址</button>
                 </div>
                 {#if teacher.videoPath}
                   <div class="video-body">
@@ -993,8 +1053,10 @@
                       bind:this={teacherEl}
                       src={mediaSrc(teacher.videoPath)}
                       controls
+                      controlslist="nodownload"
                       preload="auto"
                       playsinline
+                      oncontextmenu={(event) => event.preventDefault()}
                       ontimeupdate={() => updateCue(teacherEl?.currentTime ?? 0)}
                       onwaiting={() => markTeacherBuffering(true)}
                       onplaying={() => markTeacherBuffering(false)}
@@ -1019,7 +1081,6 @@
                 <div class="video-head">
                   <span>{hdmi.videoName ?? "HDMI"}</span>
                   <small>{humanSize(hdmi.videoSize)}</small>
-                  <button class="text-btn light" onclick={() => copy(hdmi.videoPath)}>复制地址</button>
                 </div>
                 {#if hdmi.videoPath}
                   <div class="video-body">
@@ -1028,8 +1089,10 @@
                       bind:this={hdmiEl}
                       src={mediaSrc(hdmi.videoPath)}
                       controls
+                      controlslist="nodownload"
                       preload="auto"
                       playsinline
+                      oncontextmenu={(event) => event.preventDefault()}
                       ontimeupdate={() => updateCue(hdmiEl?.currentTime ?? 0)}
                       onwaiting={() => markHdmiBuffering(true)}
                       onplaying={() => markHdmiBuffering(false)}
@@ -1808,6 +1871,36 @@
   }
   .appbar-spacer {
     flex: 1;
+  }
+  .version-chip {
+    height: 28px;
+    padding: 0 9px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--muted);
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .version-chip:hover {
+    background: var(--surface-muted);
+    color: var(--ink-soft);
+  }
+  .version-chip.has-update {
+    border-color: #fcd34d;
+    background: var(--amber-soft);
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .update-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
   }
   .connection {
     display: flex;

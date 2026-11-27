@@ -124,6 +124,11 @@ jobs:
         shell: bash
         run: npm ci
 
+      - name: Set app version
+        working-directory: ilearn-gui
+        shell: bash
+        run: node scripts/set-version.mjs "0.1.${{ github.run_number }}"
+
       - name: Build Tauri app (Windows)
         if: runner.os == 'Windows'
         working-directory: ilearn-gui

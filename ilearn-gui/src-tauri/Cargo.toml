@@ -26,6 +26,7 @@ axum = "0.8"
 url = "2"
 tokio = { version = "1", features = ["sync", "net", "rt"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "cookies", "stream"] }
+semver = "1"
 ilearn-core = { package = "ilearn-cli", path = "../../ilearn-cli" }
 
 [profile.release]

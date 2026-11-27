@@ -91,8 +91,19 @@ export interface PasswordStart {
   captcha?: string | null;
 }
 
+export interface UpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  hasUpdate: boolean;
+  url: string;
+  name?: string | null;
+  publishedAt?: string | null;
+}
+
 export const api = {
   getProxyBase: () => invoke<string>("get_proxy_base"),
+  appVersion: () => invoke<string>("app_version"),
+  checkUpdate: () => invoke<UpdateInfo>("check_update"),
   loadSession: () => invoke<User | null>("load_session"),
   startQr: () => invoke<QrStart>("start_qr"),
   pollQr: () => invoke<QrStatus>("poll_qr"),

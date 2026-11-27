@@ -44,6 +44,82 @@ struct PasswordStart {
     captcha: Option<String>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateInfo {
+    current_version: String,
+    latest_version: String,
+    has_update: bool,
+    url: String,
+    name: Option<String>,
+    published_at: Option<String>,
+}
+
+fn version_is_newer(latest: &str, current: &str) -> bool {
+    let latest = latest.trim_start_matches('v');
+    let current = current.trim_start_matches('v');
+    match (
+        semver::Version::parse(latest),
+        semver::Version::parse(current),
+    ) {
+        (Ok(latest), Ok(current)) => latest > current,
+        _ => latest != current,
+    }
+}
+
+#[tauri::command]
+fn app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[tauri::command]
+async fn check_update() -> Result<UpdateInfo, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("ilearn-gui-updater")
+        .build()
+        .map_err(err)?;
+    let resp = client
+        .get("https://api.github.com/repos/jsy061030/ilearntec-xuetaijida/releases/latest")
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .send()
+        .await
+        .map_err(err)?;
+    let status = resp.status();
+    let text = resp.text().await.map_err(err)?;
+    if !status.is_success() {
+        return Err(format!(
+            "GitHub API HTTP {status}: {}",
+            ilearn_core::util::safe_truncate(&text, 200)
+        ));
+    }
+    let json: serde_json::Value = serde_json::from_str(&text).map_err(err)?;
+    let tag = json
+        .get("tag_name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "GitHub Release 缺少 tag_name".to_string())?;
+    let latest_version = tag.trim_start_matches('v').to_string();
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    Ok(UpdateInfo {
+        has_update: version_is_newer(&latest_version, &current_version),
+        current_version,
+        latest_version,
+        url: json
+            .get("html_url")
+            .and_then(|v| v.as_str())
+            .unwrap_or("https://github.com/jsy061030/ilearntec-xuetaijida/releases")
+            .to_string(),
+        name: json
+            .get("name")
+            .and_then(|v| v.as_str())
+            .map(str::to_string),
+        published_at: json
+            .get("published_at")
+            .and_then(|v| v.as_str())
+            .map(str::to_string),
+    })
+}
+
 fn err(e: impl std::fmt::Display) -> String {
     format!("{e:#}")
 }
@@ -362,6 +438,8 @@ pub fn run() {
             submit_wx,
             logout,
             get_proxy_base,
+            app_version,
+            check_update,
             get_terms,
             get_lessons,
             get_records,
